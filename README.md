@@ -1,39 +1,63 @@
-# 🏙️ VIETNAM REAL ESTATE DATA ANALYSIS
+# 🏠 PREDICTING REAL ESTATE LIQUIDITY (DỰ BÁO THANH KHOẢN BĐS)
 
-## 1. Vấn đề nghiên cứu
-Dự án phân tích thị trường bất động sản tại 5 thành phố lớn (Hà Nội, TP.HCM, Đà Nẵng, Cần Thơ, Hải Phòng). Mục tiêu là làm sạch dữ liệu thô, phân tích xu hướng giá và ứng dụng K-Means Clustering để phân khúc thị trường.
+## 1. Giới thiệu bài toán (Problem Statement)
+Thanh khoản (Liquidity) là rủi ro lớn nhất trong đầu tư Bất động sản. Dự án này nhằm mục đích xây dựng quy trình xử lý dữ liệu và mô hình học máy để trả lời câu hỏi: **"Bất động sản này có dễ bán hay không?"** dựa trên các đặc điểm của nó và thị trường.
 
-## 2. Dữ liệu Input & Output
-Dữ liệu được tổng hợp từ các file: Properties, Transactions, Owners, Market Indicators.
-
-### Input (Dữ liệu đầu vào cho mô hình):
-- **size_m2** (Float): Diện tích ($m^2$).
-- **price_per_m2** (Float): Đơn giá (VND/$m^2$).
-- **region_score** (Float): Điểm tiềm năng khu vực.
-- **owner_rating** (Float): Điểm tín nhiệm chủ nhà.
-- **interest_rate** (Float): Lãi suất ngân hàng (%).
-- **liquidity_index** (Float): Chỉ số thanh khoản.
-
-### Output (Kết quả):
-- **Cluster_Label**: Nhãn phân cụm (0, 1, 2) đại diện cho phân khúc BĐS.
-
-## 3. Quy trình xử lý (EDA)
-1. **Làm sạch:** Xử lý dữ liệu thiếu (Missing), loại bỏ trùng lặp (Duplicate) bằng `clean_phase1.py` và `clean_phase2.py`.
-2. **Chuẩn hóa:** Đổi tỷ giá USD sang VND (25,400), định dạng ngày tháng (dd/mm/yyyy).
-3. **Trực quan hóa:**
-   - Biểu đồ tròn: Tỷ lệ BĐS theo thành phố.
-   - Histogram: Phân phối giá (phát hiện lệch phải).
-4. **Outlier:** Loại bỏ nhiễu bằng phương pháp Z-score trong file `EDA1.py`.
-
-## 4. Kết quả Gom cụm (K-Means)
-Sử dụng phương pháp Elbow xác định số cụm tối ưu ($k$).
-- **Cụm 0:** BĐS bình dân, vùng ven.
-- **Cụm 1:** BĐS trung cấp, thanh khoản cao.
-- **Cụm 2:** BĐS cao cấp, vị trí đắc địa.
-
-## 5. Phân tích nâng cao (PCA)
-- Giảm chiều dữ liệu từ 6 biến xuống 3 thành phần chính (PC1, PC2, PC3).
-- Trực quan hóa không gian 3D cho thấy các nhóm khách hàng tách biệt rõ ràng (Xem chi tiết trong `Clustering_Pipeline.ipynb`).
+**Mục tiêu cụ thể:**
+* Làm sạch và chuẩn hóa dữ liệu đa nguồn (Transactions, Owners, Market Indicators).
+* Phân tích các yếu tố tác động đến thanh khoản (Giá, Vị trí, Lãi suất).
+* Ứng dụng **K-Means Clustering** & **PCA** để phân khúc thị trường, nhận diện các nhóm BĐS có đặc tính thanh khoản cao/thấp.
 
 ---
-*Đồ án môn học Data Analysis.*
+
+## 2. Mô tả dữ liệu (Data Description)
+
+Dữ liệu đầu vào (Features) được lựa chọn kỹ càng để phản ánh cung - cầu và tâm lý thị trường.
+
+### Input Features (Biến đầu vào):
+| Biến số | Kiểu dữ liệu | Ý nghĩa trong thanh khoản |
+| :--- | :--- | :--- |
+| **price_per_m2** | `Float` | Đơn giá càng cao kén người mua -> ảnh hưởng thanh khoản. |
+| **size_m2** | `Float` | Diện tích quá lớn hoặc quá nhỏ thường khó bán hơn. |
+| **region_score** | `Float` | Điểm hấp dẫn của vị trí (Hạ tầng, Tiện ích). |
+| **owner_rating** | `Float` | Uy tín người bán (ảnh hưởng đến niềm tin người mua). |
+| **interest_rate** | `Float` | Lãi suất vay (Yếu tố vĩ mô tác động mạnh đến sức mua). |
+| **days_on_market** | `Integer` | (Dữ liệu lịch sử) Số ngày tin đăng tồn tại trên sàn. |
+
+### Output Target (Biến mục tiêu):
+* **Liquidity Label/Index:** Nhãn phân loại khả năng thanh khoản (Dựa trên thời gian bán được hàng).
+
+---
+
+## 3. Quy trình EDA & Tiền xử lý (Exploratory Data Analysis)
+Quy trình được thực hiện qua các bước trong `clean_phase1.py`, `clean_phase2.py` và `EDA1.py`:
+
+1.  **Data Cleaning:** Xử lý dữ liệu khuyết (Missing data) ở các cột quan trọng như Giá và Diện tích.
+2.  **Feature Engineering:** Tạo biến mới `region_score` từ dữ liệu vị trí và `owner_rating` từ lịch sử giao dịch.
+3.  **Outlier Detection:** Loại bỏ các BĐS có giá trị bất thường (dùng Z-score) để tránh làm nhiễu mô hình dự báo.
+4.  **Trực quan hóa (Visualization):**
+    * Phân tích mối tương quan (Correlation) giữa Lãi suất ngân hàng và Số lượng giao dịch.
+    * Biểu đồ phân phối thời gian bán hàng (Days on Market) theo từng Quận/Huyện.
+
+---
+
+## 4. Phân khúc thanh khoản bằng K-Means (Clustering Results)
+
+Thay vì dự báo tuyến tính, chúng tôi sử dụng thuật toán **K-Means** (trong `Clustering_Pipeline.ipynb`) để gom nhóm các BĐS có đặc điểm tương đồng.
+
+**Kết quả phân cụm (Liquidity Segments):**
+Dữ liệu được chia thành 3 nhóm (Clusters) chính:
+* **Cluster 0 (Thanh khoản thấp):** Thường là BĐS diện tích lớn, tổng giá trị cao (High ticket size), kén khách.
+* **Cluster 1 (Thanh khoản cao):** BĐS giá tầm trung, diện tích vừa phải (60-90m2), vị trí đông dân cư.
+* **Cluster 2 (Thanh khoản trung bình):** BĐS ở vùng ven, giá rẻ nhưng xa trung tâm, phụ thuộc nhiều vào quy hoạch.
+
+---
+
+## 5. Tối ưu hóa mô hình với PCA
+Để trực quan hóa các nhóm thanh khoản trong không gian đa chiều, kỹ thuật **PCA (Principal Component Analysis)** được áp dụng:
+
+1.  **Giảm chiều:** Rút gọn 6 biến đầu vào thành 3 thành phần chính (Principal Components) đại diện cho >80% thông tin.
+2.  **Visualization 3D:** Biểu đồ 3D cho thấy ranh giới rõ ràng giữa nhóm "Dễ bán" và "Khó bán", chứng minh các biến đầu vào đã chọn lọc có hiệu quả phân loại tốt.
+
+---
+*Đồ án môn học Data Analysis - Dự báo Thanh khoản Bất động sản Việt Nam.*
